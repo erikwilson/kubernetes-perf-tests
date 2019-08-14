@@ -14,7 +14,7 @@
 
 all: docker nptests push launch runtests
 
-DOCKERREPO       := girishkalele/netperf-latest
+DOCKERREPO       := erikwilson/netperf-latest:$(uname -m)
 
 docker: nptests launch
 	mkdir -p Dockerbuild && \
@@ -26,7 +26,7 @@ push: docker
 	gcloud docker push $(DOCKERREPO)
 
 nptests: nptest/nptest.go
-	cd nptest; GOOS=linux GOARCH=amd64 make nptests
+	cd nptest; make nptests
 
 clean:
 	@rm -f Dockerbuild/*
