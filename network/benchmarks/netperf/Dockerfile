@@ -25,13 +25,16 @@ FROM debian
 
 # install binary and remove cache
 RUN apt-get update \
-    && apt-get install -y build-essential iperf3 curl wget net-tools autoconf automake git \
+    && apt-get install -y build-essential curl wget net-tools autoconf automake git \
     && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /tmp
 
-# Download and build netperf from sources
-RUN git clone --depth 1 https://github.com/HewlettPackard/netperf/
+# Download and build perf tools from source
+RUN git clone --depth 1 https://github.com/HewlettPackard/netperf/ -b bcb868bde7f0203bbab69609f65d4088ba7398db
 RUN cd netperf && ./autogen.sh && ./configure --prefix=/usr/local --bindir /usr/local/bin && make && make install
+
+RUN git clone --depth 1 https://github.com/esnet/iperf/ -b 3.7
+RUN cd iperf && ./configure --prefix=/usr/local --bindir /usr/local/bin && make && make install
 
 COPY nptests /usr/bin/
 
