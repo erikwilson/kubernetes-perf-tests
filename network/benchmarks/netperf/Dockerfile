@@ -23,10 +23,9 @@
 #
 FROM debian
 
-MAINTAINER Girish Kalele <gkalele@google.com>
 # install binary and remove cache
 RUN apt-get update \
-    && apt-get install -y iperf3 curl wget net-tools gcc make \
+    && apt-get install -y build-essential iperf3 curl wget net-tools autoconf automake git \
     && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /tmp
 
