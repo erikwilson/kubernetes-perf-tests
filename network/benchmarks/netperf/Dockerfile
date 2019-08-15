@@ -30,11 +30,19 @@ RUN apt-get update \
 RUN mkdir -p /tmp
 
 # Download and build perf tools from source
-RUN git clone --depth 1 https://github.com/HewlettPackard/netperf/ -b bcb868bde7f0203bbab69609f65d4088ba7398db
-RUN cd netperf && ./autogen.sh && ./configure --prefix=/usr/local --bindir /usr/local/bin && make && make install
+RUN git clone --no-checkout --depth 1 https://github.com/HewlettPackard/netperf/
+RUN cd netperf && \
+    git checkout bcb868bde7f0203bbab69609f65d4088ba7398db && \
+    ./autogen.sh && \
+    ./configure --prefix=/usr/local --bindir /usr/local/bin && \
+    make && \
+    make install
 
 RUN git clone --depth 1 https://github.com/esnet/iperf/ -b 3.7
-RUN cd iperf && ./configure --prefix=/usr/local --bindir /usr/local/bin && make && make install
+RUN cd iperf && \
+    ./configure --prefix=/usr/local --bindir /usr/local/bin && \
+    make && \
+    make install
 
 COPY nptests /usr/bin/
 
