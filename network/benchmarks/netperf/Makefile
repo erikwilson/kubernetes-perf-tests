@@ -14,9 +14,9 @@
 
 all: docker nptests push launch runtests
 
-DOCKERREPO       := erikwilson/netperf-latest:$(shell uname -m)
+DOCKERREPO       := local/netperf-latest
 
-docker: nptests launch
+docker: nptests
 	mkdir -p Dockerbuild && \
 	cp -f Dockerfile Dockerbuild/ && \
 	cp -f nptest/nptests Dockerbuild/ &&\
