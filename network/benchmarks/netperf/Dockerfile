@@ -24,8 +24,8 @@
 FROM debian
 
 # install binary and remove cache
-RUN apt-get update \
-    && apt-get install -y build-essential texinfo curl wget net-tools autoconf automake git \
+RUN apt-get -q update \
+    && apt-get -q -y install build-essential texinfo curl wget net-tools autoconf automake git \
     && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /tmp
 
