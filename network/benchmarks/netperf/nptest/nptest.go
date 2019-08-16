@@ -587,7 +587,7 @@ func startWork() {
 
 // Invoke and indefinitely run an iperf server
 func iperfServer() {
-	output, success := cmdExec(iperf3Path, []string{iperf3Path, "-s", host, "-J", "-i", "60", "-w", "2M"}, 15)
+	output, success := cmdExec(iperf3Path, []string{iperf3Path, "-s", host, "-J", "-i", "60"}, 15)
 	if success {
 		fmt.Println(output)
 	}
