@@ -158,6 +158,29 @@ func init() {
 	flag.IntVar(&mssMin, "mssMin", 96, "Minimum MSS to start with")
 	flag.IntVar(&mssMax, "mssMax", 1460, "Maximum MSS to end with")
 	flag.IntVar(&mssStepSize, "mssStepSize", 64, "Size of step looping from min to max MSS")
+}
+
+func setup() error {
+	flag.Parse()
+	grabEnv()
+
+	fmt.Printf("# Flags:\n")
+	fmt.Printf("mode=%s\n", mode)
+	fmt.Printf("port=%s\n", port)
+	fmt.Printf("host=%s\n", host)
+	fmt.Printf("window=%d\n", window)
+	fmt.Printf("mssMin=%d\n", mssMin)
+	fmt.Printf("mssMax=%d\n", mssMax)
+	fmt.Printf("mssStepSize=%d\n", mssStepSize)
+	fmt.Printf("# ---\n\n")
+
+	if err := validateParams(); err != nil {
+		return err
+	}
+
+	if err := initializeOutputFiles(); err != nil {
+		return err
+	}
 
 	workerStateMap = make(map[string]*workerState)
 	testcases = []*testcase{
@@ -185,26 +208,23 @@ func init() {
 	iperfCPUOutputRegexp = regexp.MustCompile(`local/sender\s(\d+\.\d+)%\s\((\d+\.\d+)%\w/(\d+\.\d+)%\w\),\sremote/receiver\s(\d+\.\d+)%\s\((\d+\.\d+)%\w/(\d+\.\d+)%\w\)`)
 
 	dataPoints = make(map[string][]point)
+
+	return nil
 }
 
-func initializeOutputFiles() {
+func initializeOutputFiles() error {
 	fd, err := os.OpenFile(outputCaptureFile, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
-		fmt.Println("Failed to open output capture file", err)
-		os.Exit(2)
+		return err
 	}
-	fd.Close()
+	return fd.Close()
 }
 
 func main() {
-	initializeOutputFiles()
-	flag.Parse()
-	if !validateParams() {
-		fmt.Println("Failed to parse cmdline args - fatal error - bailing out")
+	if err := setup(); err != nil {
+		fmt.Println(err)
 		os.Exit(1)
-
 	}
-	grabEnv()
 	fmt.Println("Running as", mode, "...")
 	if mode == orchestratorMode {
 		orchestrate()
@@ -220,16 +240,13 @@ func grabEnv() {
 	podname = os.Getenv("HOSTNAME")
 }
 
-func validateParams() (rv bool) {
-	rv = true
+func validateParams() error {
 	if mode != workerMode && mode != orchestratorMode {
-		fmt.Println("Invalid mode", mode)
-		return false
+		return fmt.Errorf("Invalid mode %s", mode)
 	}
 
 	if len(port) == 0 {
-		fmt.Println("Invalid port", port)
-		return false
+		return fmt.Errorf("Invalid port %s", port)
 	}
 
 	if (len(host)) == 0 {
@@ -239,7 +256,7 @@ func validateParams() (rv bool) {
 			host = os.Getenv("NETPERF_ORCH_SERVICE_HOST")
 		}
 	}
-	return
+	return nil
 }
 
 func allWorkersIdle() bool {
