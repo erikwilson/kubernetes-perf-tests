@@ -387,9 +387,6 @@ func flushDataPointsToCsv() {
 
 	// Write the MSS points for the X-axis before dumping all the testcase datapoints
 	for _, points := range dataPoints {
-		if len(points) == 1 {
-			continue
-		}
 		buffer = fmt.Sprintf("%-45s, Maximum,", "MSS")
 		for _, p := range points {
 			buffer = buffer + fmt.Sprintf(" %d,", p.mss)
