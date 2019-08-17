@@ -52,6 +52,10 @@ var host string
 var worker string
 var kubenode string
 var podname string
+var window int
+var mssMin int
+var mssMax int
+var mssStepSize int
 
 var workerStateMap map[string]*workerState
 
@@ -73,9 +77,6 @@ const (
 	netperfPath          = "/usr/local/bin/netperf"
 	netperfServerPath    = "/usr/local/bin/netserver"
 	outputCaptureFile    = "/tmp/output.txt"
-	mssMin               = 96
-	mssMax               = 1460
-	mssStepSize          = 64
 	parallelStreams      = "8"
 	rpcServicePort       = "5202"
 	localhostIPv4Address = "127.0.0.1"
@@ -153,6 +154,10 @@ func init() {
 	flag.StringVar(&mode, "mode", "worker", "Mode for the daemon (worker | orchestrator)")
 	flag.StringVar(&port, "port", rpcServicePort, "Port to listen on (defaults to 5202)")
 	flag.StringVar(&host, "host", "", "IP address to bind to (defaults to 0.0.0.0)")
+	flag.IntVar(&window, "window", 0, "Sets the TCP window size")
+	flag.IntVar(&mssMin, "mssMin", 96, "Minimum MSS to start with")
+	flag.IntVar(&mssMax, "mssMax", 1460, "Maximum MSS to end with")
+	flag.IntVar(&mssStepSize, "mssStepSize", 64, "Size of step looping from min to max MSS")
 
 	workerStateMap = make(map[string]*workerState)
 	testcases = []*testcase{
@@ -442,34 +447,32 @@ func (t *NetPerfRpc) ReceiveOutput(data *WorkerOutput, reply *int) error {
 	var bw string
 	var cpuSender string
 	var cpuReceiver string
+	var mss int
 
 	switch data.Type {
 	case iperfTcpTest:
-		mss := testcases[currentJobIndex].MSS - mssStepSize
-		outputLog = outputLog + fmt.Sprintln("Received TCP output from worker", data.Worker, "for test", testcase.Label,
+		mss = testcases[currentJobIndex].MSS - mssStepSize
+		outputLog = fmt.Sprintln("Received TCP output from worker", data.Worker, "for test", testcase.Label,
 			"from", testcase.SourceNode, "to", testcase.DestinationNode, "MSS:", mss) + data.Output
-		writeOutputFile(outputCaptureFile, outputLog)
 		bw = parseIperfTcpBandwidth(data.Output)
 		cpuSender, cpuReceiver = parseIperfCpuUsage(data.Output)
-		registerDataPoint(testcase.Label, mss, bw, currentJobIndex)
 
 	case iperfUdpTest:
-		mss := testcases[currentJobIndex].MSS - mssStepSize
-		outputLog = outputLog + fmt.Sprintln("Received UDP output from worker", data.Worker, "for test", testcase.Label,
+		mss = testcases[currentJobIndex].MSS - mssStepSize
+		outputLog = fmt.Sprintln("Received UDP output from worker", data.Worker, "for test", testcase.Label,
 			"from", testcase.SourceNode, "to", testcase.DestinationNode, "MSS:", mss) + data.Output
-		writeOutputFile(outputCaptureFile, outputLog)
 		bw = parseIperfUdpBandwidth(data.Output)
-		registerDataPoint(testcase.Label, mss, bw, currentJobIndex)
 
 	case netperfTest:
-		outputLog = outputLog + fmt.Sprintln("Received netperf output from worker", data.Worker, "for test", testcase.Label,
+		mss = 0
+		outputLog = fmt.Sprintln("Received netperf output from worker", data.Worker, "for test", testcase.Label,
 			"from", testcase.SourceNode, "to", testcase.DestinationNode) + data.Output
-		writeOutputFile(outputCaptureFile, outputLog)
 		bw = parseNetperfBandwidth(data.Output)
-		registerDataPoint(testcase.Label, 0, bw, currentJobIndex)
 		testcases[currentJobIndex].Finished = true
-
 	}
+
+	writeOutputFile(outputCaptureFile, outputLog)
+	registerDataPoint(testcase.Label, mss, bw, currentJobIndex)
 
 	switch data.Type {
 	case iperfTcpTest:
@@ -605,7 +608,7 @@ func netperfServer() {
 func iperfClient(serverHost, serverPort string, mss int, workItemType int) (rv string) {
 	switch {
 	case workItemType == iperfTcpTest:
-		output, success := cmdExec(iperf3Path, []string{iperf3Path, "-c", serverHost, "-V", "-N", "-i", "30", "-t", "10", "-f", "m", "-Z", "-P", parallelStreams, "-M", strconv.Itoa(mss)}, 15)
+		output, success := cmdExec(iperf3Path, []string{iperf3Path, "-c", serverHost, "-V", "-N", "-i", "30", "-t", "10", "-f", "m", "-Z", "-w", strconv.Itoa(window), "-P", parallelStreams, "-M", strconv.Itoa(mss)}, 15)
 		if success {
 			rv = output
 		}

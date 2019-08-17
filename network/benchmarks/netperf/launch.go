@@ -52,13 +52,13 @@ const (
 )
 
 var (
-	iterations     int
-	hostnetworking bool
-	tag            string
-	kubeConfig     string
-	netperfImage   string
-	cleanupOnly    bool
-
+	iterations         int
+	hostnetworking     bool
+	tag                string
+	kubeConfig         string
+	netperfImage       string
+	cleanupOnly        bool
+	args               string
 	everythingSelector metav1.ListOptions = metav1.ListOptions{}
 
 	primaryNode   api.Node
@@ -76,6 +76,7 @@ func init() {
 		"Location of the kube configuration file ($HOME/.kube/config")
 	flag.BoolVar(&cleanupOnly, "cleanup", false,
 		"(boolean) Run the cleanup resources phase only (use this flag to clean up orphaned resources from a test run)")
+	flag.StringVar(&args, "args", "", "Arguments for nptests")
 }
 
 func setupClient() *kubernetes.Clientset {
@@ -232,7 +233,7 @@ func createRCs(c *kubernetes.Clientset) bool {
 							Name:            name,
 							Image:           netperfImage,
 							Ports:           []api.ContainerPort{{ContainerPort: orchestratorPort}},
-							Args:            []string{"--mode=orchestrator"},
+							Args:            append([]string{"--mode=orchestrator"}, strings.Split(args, ",")...),
 							ImagePullPolicy: "IfNotPresent",
 						},
 					},
@@ -285,7 +286,7 @@ func createRCs(c *kubernetes.Clientset) bool {
 								Name:            name,
 								Image:           netperfImage,
 								Ports:           portSpec,
-								Args:            []string{"--mode=worker"},
+								Args:            append([]string{"--mode=worker"}, strings.Split(args, ",")...),
 								Env:             workerEnv,
 								ImagePullPolicy: "IfNotPresent",
 							},
